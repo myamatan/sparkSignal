@@ -14,7 +14,7 @@ outpath='/Users/masahiroyamatani/Desktop/spark_sig/plots'
 directory = './data/20180709/all.c300a300.2h'
 fileID = '11422.CSV' 
 dt = 1e-10
-trigger = -0.005 #-0.2
+trigger = -0.01 #-0.2
 
 def FFT_AMP(data):
     data=np.hamming(len(data))*data
@@ -38,10 +38,11 @@ if __name__ == "__main__":
 
     # Fileter 
     nyq = ( 1.0/(t[1] - t[0]) ) / 2.0
-    fe1 = 27e+6 / nyq
-    fe2 = 28e+6 / nyq
+    fe1 = 1e+3 / nyq
+    fe2 = 0.05e+9 / nyq
     numtaps = 255
-    b = scipy.signal.firwin(numtaps, [fe1, fe2], pass_zero=False)
+    b = scipy.signal.firwin(numtaps, [fe1, fe2], pass_zero=False) #band pass
+    #b = scipy.signal.firwin(numtaps, [fe1, fe2]) #band stop
 
     # FFT 
     fft = np.fft.fft(vol)
@@ -52,13 +53,15 @@ if __name__ == "__main__":
     bvol = scipy.signal.lfilter(b, 1, vol)
     adf = pd.DataFrame(bvol, columns=['bvol'])
     df = pd.concat([df, adf], axis=1)
+    bfft = np.fft.fft(bvol)
+    bspectrum = [np.sqrt(c.real ** 2 + c.imag ** 2) for c in bfft]
     
     line = pd.DataFrame({ 'zeroVol' : np.array([0]*len(df)) } )
     df = pd.concat([df, line], axis=1)
 
     # Get first index in which voltage is lower than 0.2
     trig_index = df[ df.bvol <= trigger ].index[0]
-    trig_index = df[ (df.index < trig_index) & (abs(df['bvol'])<=0.0001) ]['bvol'].index[-1]
+    trig_index = df[ (df.index < trig_index) & (abs(df['bvol'])<=0.001) ]['bvol'].index[-1]
     inteVol = df.iloc[ df.index > trig_index ]['bvol'].sum(axis=0) * dt
     print('Integral :', '{:.3E}'.format(inteVol), '[V*s]')
     
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     plt.xlim(t[trig_index-300], t[-1])
     plt.ylim(-1.2*max(abs(vol)), 1.2*max(abs(vol)))
     plt.xlabel('Time [s]', fontsize=7)
-    plt.ylabel('Voltage_filterd [V]', fontsize=7)
+    plt.ylabel('voltage [V]', fontsize=7)
     plt.tick_params(labelsize=7)
 
     plt.subplot(2,1,2)
@@ -110,5 +113,28 @@ if __name__ == "__main__":
     plt.ylabel('spectrum', fontsize=7)
     plt.xlim(0, 1.2e+9)
     plt.tick_params(labelsize=7)
-    plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.fft.png')
+    plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.raw.png')
     #plt.show()
+    plt.close('all')
+
+    plt.figure()
+    plt.subplot(2,1,1)
+    plt.style.use('ggplot')
+    plt.plot(t,bvol, color='red')
+    plt.xlim(t[trig_index-300], t[-1])
+    plt.ylim(-1.2*max(abs(bvol)), 1.2*max(abs(bvol)))
+    plt.xlabel('Time [s]', fontsize=7)
+    plt.ylabel('voltage [V]', fontsize=7)
+    plt.tick_params(labelsize=7)
+
+    plt.subplot(2,1,2)
+    plt.plot(freq, bspectrum, color='red')
+    plt.axis([0, nyq, 0, max(spectrum)])
+    plt.xlabel('frequency [Hz]', fontsize=7)
+    plt.ylabel('spectrum', fontsize=7)
+    plt.xlim(0, 1.2e+9)
+    plt.tick_params(labelsize=7)
+    plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.bpass.png')
+    #plt.show()
+    plt.close('all')
+
