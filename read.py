@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # Fileter 
     nyq = ( 1.0/(t[1] - t[0]) ) / 2.0
     fe1 = 1e+3 / nyq
-    fe2 = 0.05e+9 / nyq
+    fe2 = 0.027e+9 / nyq #0.05e+9
     numtaps = 255
     b = scipy.signal.firwin(numtaps, [fe1, fe2], pass_zero=False) #band pass
     #b = scipy.signal.firwin(numtaps, [fe1, fe2]) #band stop
