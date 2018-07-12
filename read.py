@@ -32,11 +32,11 @@ if __name__ == "__main__":
     df = pd.read_csv(directory+'/'+fileID, header=None)
     df.columns = ['Param','nan','nan1','time','vol','nan3']
 
-    # Data for 
+    # Data for raw plotting
     vol = np.array(df['vol'])
     t = np.array(df['time'])
 
-    # Fileter 
+    # Bandpass (stop) Filter 
     nyq = ( 1.0/(t[1] - t[0]) ) / 2.0
     fe1 = 1e+3 / nyq
     fe2 = 0.027e+9 / nyq #0.05e+9
@@ -49,13 +49,14 @@ if __name__ == "__main__":
     spectrum = [np.sqrt(c.real ** 2 + c.imag ** 2) for c in fft]
     freq = np.fft.fftfreq(len(vol), t[1] - t[0])
 
-    # Filtered voltage
+    # Filtered voltage and spectrum
     bvol = scipy.signal.lfilter(b, 1, vol)
     adf = pd.DataFrame(bvol, columns=['bvol'])
     df = pd.concat([df, adf], axis=1)
     bfft = np.fft.fft(bvol)
     bspectrum = [np.sqrt(c.real ** 2 + c.imag ** 2) for c in bfft]
     
+    # Dataframe arrange
     line = pd.DataFrame({ 'zeroVol' : np.array([0]*len(df)) } )
     df = pd.concat([df, line], axis=1)
 
