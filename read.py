@@ -14,7 +14,8 @@ outpath='/Users/masahiroyamatani/Desktop/spark_sig/plots'
 directory = './data/20180709/all.c300a300.2h'
 fileID = '11422.CSV' 
 dt = 1e-10
-trigger = -0.01 #-0.2
+trigger = -0.01 
+btrigger = -0.01
 
 def FFT_AMP(data):
     data=np.hamming(len(data))*data
@@ -31,6 +32,19 @@ if __name__ == "__main__":
     
     df = pd.read_csv(directory+'/'+fileID, header=None)
     df.columns = ['Param','nan','nan1','time','vol','nan3']
+
+    # Directory arrange
+    if directory[0]=='.':
+        if not os.path.exists('./plots/'+directory.split('/')[2]):
+            os.mkdir('./plots/'+directory.split('/')[2])
+        directory = directory.split('/')[2] + '/' + directory.split('/')[3]
+    else:
+        if not os.path.exists('./plots/'+directory.split('/')[1]):
+            os.mkdir('./plots/'+directory.split('/')[1])
+        directory = directory.split('/')[1] + '/' + directory.split('/')[2]
+
+    if not os.path.exists('./plots/'+directory):
+        os.mkdir('./plots/'+directory)
 
     # Data for raw plotting
     vol = np.array(df['vol'])
@@ -61,20 +75,24 @@ if __name__ == "__main__":
     df = pd.concat([df, line], axis=1)
 
     # Get first index in which voltage is lower than 0.2
-    trig_index = df[ df.bvol <= trigger ].index[0]
-    trig_index = df[ (df.index < trig_index) & (abs(df['bvol'])<=0.001) ]['bvol'].index[-1]
-    inteVol = df.iloc[ df.index > trig_index ]['bvol'].sum(axis=0) * dt
+    trig_index = df[ df.vol <= trigger ].index[0]
+    trig_index = df[ (df.index < trig_index) & (abs(df['vol'])<=0.001) ]['vol'].index[-1]
+    inteVol = df.iloc[ df.index > trig_index ]['vol'].sum(axis=0) * dt
     print('Integral :', '{:.3E}'.format(inteVol), '[V*s]')
+
+    btrig_index = df[ df.bvol <= btrigger ].index[0]
+    btrig_index = df[ (df.index < btrig_index) & (abs(df['bvol'])<=0.001) ]['vol'].index[-1]
+    binteVol = df.iloc[ df.index > btrig_index ]['bvol'].sum(axis=0) * dt
+    print('bIntegral :', '{:.3E}'.format(binteVol), '[V*s]')
     
-    # Plotting 
+    
+    # bfiltered vol
     ax = df.plot(x='time', y=['bvol'], color=['green'], grid=True, legend=False, alpha=0.96)
-    ax.text(0.1e-7,max(bvol)*1.25,'Integral :'+str('{:.3E}'.format(inteVol))+' [V*s]', size=14)
-    
+    ax.text(0.1e-7,max(bvol)*1.25,'Integral :'+str('{:.3E}'.format(binteVol))+' [V*s]', size=14)
     plt.fill_between(df['time'], df['bvol'], df['zeroVol'],
                     where=np.abs(df['bvol']) >= 0,
                     facecolor='green', alpha=0.3, interpolate=True)
-    plt.vlines(df.iloc[trig_index]['time'], -1., 1., 'black', linestyles='dashed', linewidth=1)
-   
+    plt.vlines(df.iloc[btrig_index]['time'], -1., 1., 'black', linestyles='dashed', linewidth=1)
     plt.title(directory+'/'+fileID)
     plt.style.use('ggplot')
     plt.xlim(t[trig_index-100], t[-1])
@@ -82,18 +100,23 @@ if __name__ == "__main__":
     plt.xlabel('Time [s]')
     plt.ylabel('Voltage [V]')
     #plt.show()
+    plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.bpass.png')
+    plt.close('all')
 
-    if directory[0]=='.':
-        if not os.path.exists('./plots/'+directory.split('/')[2]):
-            os.mkdir('./plots/'+directory.split('/')[2])
-        directory = directory.split('/')[2] + '/' + directory.split('/')[3]
-    else:
-        if not os.path.exists('./plots/'+directory.split('/')[1]):
-            os.mkdir('./plots/'+directory.split('/')[1])
-        directory = directory.split('/')[1] + '/' + directory.split('/')[2]
-
-    if not os.path.exists('./plots/'+directory):
-        os.mkdir('./plots/'+directory)
+    # non filtered vol
+    ax = df.plot(x='time', y=['vol'], color=['green'], grid=True, legend=False, alpha=0.96)
+    ax.text(0.1e-7,max(vol)*1.25,'Integral :'+str('{:.3E}'.format(inteVol))+' [V*s]', size=14)
+    plt.fill_between(df['time'], df['vol'], df['zeroVol'],
+                    where=np.abs(df['vol']) >= 0,
+                    facecolor='green', alpha=0.3, interpolate=True)
+    plt.vlines(df.iloc[trig_index]['time'], -1., 1., 'black', linestyles='dashed', linewidth=1)
+    plt.title(directory+'/'+fileID)
+    plt.style.use('ggplot')
+    plt.xlim(t[trig_index-100], t[-1])
+    plt.ylim(-1.2*max(abs(vol)), 1.2*max(abs(vol)))
+    plt.xlabel('Time [s]')
+    plt.ylabel('Voltage [V]')
+    #plt.show()
     plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.png')
     plt.close('all')
 
@@ -135,7 +158,7 @@ if __name__ == "__main__":
     plt.ylabel('spectrum', fontsize=7)
     plt.xlim(0, 1.2e+9)
     plt.tick_params(labelsize=7)
-    plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.bpass.png')
+    plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.bfft.png')
     #plt.show()
     plt.close('all')
 
