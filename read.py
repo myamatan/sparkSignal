@@ -30,8 +30,15 @@ if __name__ == "__main__":
         directory = args[1]
         fileID = args[2]
     
-    df = pd.read_csv(directory+'/'+fileID, header=None)
-    df.columns = ['Param','nan','nan1','time','vol','nan3']
+    if fileID.find('Trace')!=-1:
+        df = pd.read_csv(directory+'/'+fileID, encoding='cp1252', skiprows=4)
+        df.columns = ['time','vol']
+        dt = 1e-09
+        trigger = -0.2
+        btrigger = -0.2
+    else:
+        df = pd.read_csv(directory+'/'+fileID, header=None)
+        df.columns = ['Param','nan','nan1','time','vol','nan3']
 
     # Directory arrange
     if directory[0]=='.':
@@ -76,15 +83,19 @@ if __name__ == "__main__":
 
     # Get first index in which voltage is lower than 0.2
     trig_index = df[ df.vol <= trigger ].index[0]
-    trig_index = df[ (df.index < trig_index) & (abs(df['vol'])<=0.001) ]['vol'].index[-1]
+    trig_index = df[ (df.index < trig_index) & (abs(df['vol'])<=abs(trigger/10.)) ]['vol'].index[-1]
     inteVol = df.iloc[ df.index > trig_index ]['vol'].sum(axis=0) * dt
     print('Integral :', '{:.3E}'.format(inteVol), '[V*s]')
 
     btrig_index = df[ df.bvol <= btrigger ].index[0]
-    btrig_index = df[ (df.index < btrig_index) & (abs(df['bvol'])<=0.001) ]['vol'].index[-1]
+    btrig_index = df[ (df.index < btrig_index) & (abs(df['bvol'])<=abs(trigger/10.)) ]['vol'].index[-1]
     binteVol = df.iloc[ df.index > btrig_index ]['bvol'].sum(axis=0) * dt
     print('bIntegral :', '{:.3E}'.format(binteVol), '[V*s]')
     
+    #time scale
+    df.time *= 1e+6
+    t *= 1e+6
+    unit = '$\mu$'
     
     # bfiltered vol
     ax = df.plot(x='time', y=['bvol'], color=['green'], grid=True, legend=False, alpha=0.96)
@@ -97,7 +108,7 @@ if __name__ == "__main__":
     plt.style.use('ggplot')
     plt.xlim(t[trig_index-100], t[-1])
     plt.ylim(-1.2*max(abs(bvol)), 1.2*max(abs(bvol)))
-    plt.xlabel('Time [s]')
+    plt.xlabel('Time ['+unit+'s]')
     plt.ylabel('Voltage [V]')
     #plt.show()
     plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.bpass.png')
@@ -114,7 +125,7 @@ if __name__ == "__main__":
     plt.style.use('ggplot')
     plt.xlim(t[trig_index-100], t[-1])
     plt.ylim(-1.2*max(abs(vol)), 1.2*max(abs(vol)))
-    plt.xlabel('Time [s]')
+    plt.xlabel('Time ['+unit+'s]')
     plt.ylabel('Voltage [V]')
     #plt.show()
     plt.savefig('./plots/'+directory+'/'+fileID[:-4]+'.png')
@@ -126,7 +137,7 @@ if __name__ == "__main__":
     plt.plot(t,vol, color='blue')
     plt.xlim(t[trig_index-300], t[-1])
     plt.ylim(-1.2*max(abs(vol)), 1.2*max(abs(vol)))
-    plt.xlabel('Time [s]', fontsize=7)
+    plt.xlabel('Time ['+unit+'s]', fontsize=7)
     plt.ylabel('voltage [V]', fontsize=7)
     plt.tick_params(labelsize=7)
 
@@ -147,7 +158,7 @@ if __name__ == "__main__":
     plt.plot(t,bvol, color='red')
     plt.xlim(t[trig_index-300], t[-1])
     plt.ylim(-1.2*max(abs(bvol)), 1.2*max(abs(bvol)))
-    plt.xlabel('Time [s]', fontsize=7)
+    plt.xlabel('Time ['+unit+'s]', fontsize=7)
     plt.ylabel('voltage [V]', fontsize=7)
     plt.tick_params(labelsize=7)
 
