@@ -96,6 +96,10 @@ if __name__ == "__main__":
     df.time *= 1e+6
     t *= 1e+6
     unit = '$\mu$'
+
+
+    ## Plottting
+    ############
     
     # bfiltered vol
     ax = df.plot(x='time', y=['bvol'], color=['green'], grid=True, legend=False, alpha=0.96)
