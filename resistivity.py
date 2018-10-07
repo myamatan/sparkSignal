@@ -10,8 +10,8 @@ import matplotlib.pylab as plt
 CLF = 1.96
 xlabel='Surface'
 #ylabel='HVline'
-ylabel='count630'
-#ylabel='amp630'
+#ylabel='count630'
+ylabel='amp630'
 
 yerrlabel='HVlineStd'
 if ylabel=='count630':
@@ -59,11 +59,15 @@ yMin=min(df[ylabel])-yRange*0.7
 yMax=max(df[ylabel])+yRange*1.2
 yRange=yMax-yMin
 
+textStr='Sensitive area resistivity [MOhm/sq]\nv.s.\nSensitive area to HV line resistivity [MOhm]'
+if ylabel=='count630':
+    textStr='Sensitive area resistivity [MOhm/sq]\nv.s.\nSpark count'
+elif ylabel=='amp630':
+    textStr='Sensitive area resistivity [MOhm/sq]\nv.s.\nMean shape amplitude [V]'
+
 plt.text(xMin+xRange*0.05,
          yMax-yRange*0.165,
-         'Sensitive area resistivity [MOhm/sq]\nv.s.\nSensitive area to HV line resistivity [MOhm]',
-         #'Sensitive area resistivity [MOhm/sq]\nv.s.\nSpark count',
-         #'Sensitive area resistivity [MOhm/sq]\nv.s.\nMean shape amplitude [V]',
+         textStr,
          size=11,
          bbox=dict(facecolor='white',alpha=0.8))
 
