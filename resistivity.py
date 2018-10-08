@@ -1,17 +1,21 @@
 import numpy as np
 import pandas as pd
 import scipy as sp
+
 from scipy.stats import pearsonr
+from scipy.stats import t
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import summary_table
+
+
 
 import matplotlib.pylab as plt
 
 CLF = 1.96
 xlabel='Surface'
 #ylabel='HVline'
-#ylabel='count630'
-ylabel='amp630'
+ylabel='count630'
+#ylabel='amp630'
 
 yerrlabel='HVlineStd'
 if ylabel=='count630':
@@ -31,21 +35,33 @@ print(df)
 # Correlation
 r, p = pearsonr(df[xlabel],df[ylabel])
 
+# LeaseSquare fit
+n = len(df[xlabel])
+xsum = sum(df[xlabel])
+xsum2 = sum(df[xlabel]**2)
+ysum = sum(df[ylabel])
+ysum2 = sum(df[ylabel]**2)
+xysum = sum(df[xlabel]*df[ylabel])
+
+sxx = xsum2 - xsum*xsum/n
+sxy = xysum - xsum*ysum/n
+xmean = xsum/n
+ymean = ysum/n
+beta0a = ymean
+beta1 = sxy/sxx
+ubvar = (ysum2-ysum*ysum/n-sxy*sxy/sxx)/(n-2)
 
 # Fit
-X = sm.add_constant(df[xlabel])
-res = sm.OLS(df[ylabel], X).fit()
-st, data, ss2 = summary_table(res, alpha=0.05)
-fittedvalues = data[:,2]
-predict_mean_se  = data[:,3]
-predict_mean_ci_low, predict_mean_ci_upp = data[:,4:6].T
-predict_ci_low, predict_ci_upp = data[:,6:8].T
+#X = sm.add_constant(df[xlabel])
+#res = sm.OLS(df[ylabel], X).fit()
+#st, data, ss2 = summary_table(res, alpha=0.05)
+#fittedvalues = data[:,2]
+#predict_mean_se  = data[:,3]
+#predict_mean_ci_low, predict_mean_ci_upp = data[:,4:6].T
+#predict_ci_low, predict_ci_upp = data[:,6:8].T
 
 # Plot
 df.plot.scatter(x=xlabel,y=ylabel,xerr=df[['SurfaceStd']].values.T, yerr=df[[yerrlabel]].values.T, grid=True,color='red')
-plt.plot(X, fittedvalues, 'b--', linewidth=1)
-plt.plot(X, predict_mean_ci_low, 'g--', linewidth=1)
-plt.plot(X, predict_mean_ci_upp, 'g--', linewidth=1)
 
 # plot style
 # +++++++++++++++++++++++++++++++++++++++
@@ -58,6 +74,14 @@ yRange=max(df[ylabel])-min(df[ylabel])
 yMin=min(df[ylabel])-yRange*0.7
 yMax=max(df[ylabel])+yRange*1.2
 yRange=yMax-yMin
+
+X = np.linspace(xMin, xMax, 100)
+mu = beta0a + beta1 * (X-xmean)
+muu = beta0a + beta1 * (X-xmean) + abs(t.ppf(0.025,n-2)) * np.sqrt( (1./n + (X-xmean)**2/sxx)*ubvar ) 
+mul = beta0a + beta1 * (X-xmean) - abs(t.ppf(0.025,n-2)) * np.sqrt( (1./n + (X-xmean)**2/sxx)*ubvar ) 
+plt.plot(X, mu, 'b--', linewidth=1)
+plt.plot(X, muu, 'g--', linewidth=1)
+plt.plot(X, mul, 'g--', linewidth=1)
 
 textStr='Sensitive area resistivity [MOhm/sq]\nv.s.\nSensitive area to HV line resistivity [MOhm]'
 if ylabel=='count630':
